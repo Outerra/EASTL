@@ -62,9 +62,9 @@ namespace eastl
 
 		allocator& operator=(const allocator& x);
 
-		void* allocate(size_t n, int flags = 0);
-		void* allocate(size_t n, size_t alignment, size_t offset, int flags = 0);
-		void  deallocate(void* p, size_t n);
+		void* allocate(size_t n, int flags = 0, const char *trackname = "eastl_allocator.untyped");
+		void* allocate(size_t n, size_t alignment, size_t offset, int flags = 0, const char *trackname = "eastl_allocator.untyped");
+		void  deallocate(void* p, size_t n, const char *trackname = "eastl_allocator.untyped");
 
 		const char* get_name() const;
 		void        set_name(const char* pName);
@@ -93,9 +93,9 @@ namespace eastl
 
 		dummy_allocator& operator=(const dummy_allocator&) { return *this; }
 
-		void* allocate(size_t, int = 0)                 { return NULL; }
-		void* allocate(size_t, size_t, size_t, int = 0) { return NULL; }
-		void  deallocate(void*, size_t)                 { }
+		void* allocate(size_t, int = 0, const char *trackname = "eastl_allocator.untyped")                 { return NULL; }
+		void* allocate(size_t, size_t, size_t, int = 0, const char *trackname = "eastl_allocator.untyped") { return NULL; }
+		void  deallocate(void*, size_t, const char *trackname = "eastl_allocator.untyped")                 { }
 
 		const char* get_name() const      { return ""; }
 		void        set_name(const char*) { }
@@ -144,7 +144,7 @@ namespace eastl
 	/// Implements a default allocfreemethod which uses the default global allocator.
 	/// This version supports only default alignment.
 	///
-	void* default_allocfreemethod(size_t n, void* pBuffer, void* /*pContext*/);
+	void* default_allocfreemethod(size_t n, void* pBuffer, void* /*pContext*/, const char *trackname = "eastl_allocator.untyped");
 
 
 	/// allocate_memory
@@ -155,7 +155,7 @@ namespace eastl
 	///        function instead of a standalone function like below.
 	///
 	template <typename Allocator>
-	void* allocate_memory(Allocator& a, size_t n, size_t alignment, size_t alignmentOffset);
+	void* allocate_memory(Allocator& a, size_t n, size_t alignment, size_t alignmentOffset, const char *trackname = "eastl_allocator.untyped");
 
 
 } // namespace eastl
@@ -237,7 +237,7 @@ namespace eastl
 		}
 
 
-		inline void* allocator::allocate(size_t n, int flags)
+		inline void* allocator::allocate(size_t n, int flags, const char *trackname)
 		{
 			#if EASTL_NAME_ENABLED
 				#define pName mpName
@@ -257,7 +257,7 @@ namespace eastl
 		}
 
 
-		inline void* allocator::allocate(size_t n, size_t alignment, size_t offset, int flags)
+		inline void* allocator::allocate(size_t n, size_t alignment, size_t offset, int flags, const char *trackname)
 		{
 			#if EASTL_DLL
 				// We currently have no support for implementing flags when 
@@ -290,7 +290,7 @@ namespace eastl
 		}
 
 
-		inline void allocator::deallocate(void* p, size_t)
+		inline void allocator::deallocate(void* p, size_t, const char *trackname)
 		{
 			#if EASTL_DLL
 				if (p != nullptr)
@@ -339,17 +339,17 @@ namespace eastl
 	}
 
 
-	inline void* default_allocfreemethod(size_t n, void* pBuffer, void* /*pContext*/)
+	inline void* default_allocfreemethod(size_t n, void* pBuffer, void* /*pContext*/, const char *trackname)
 	{
 		EASTLAllocatorType* const pAllocator = EASTLAllocatorDefault();
 
 		if(pBuffer) // If freeing...
 		{
-			EASTLFree(*pAllocator, pBuffer, n);
+			EASTLTrackedFree(*pAllocator, pBuffer, n, trackname);
 			return NULL;  // The return value is meaningless for the free.
 		}
 		else // allocating
-			return EASTLAlloc(*pAllocator, n);
+			return EASTLTrackedAlloc(*pAllocator, n, trackname);
 	}
 
 
@@ -361,12 +361,12 @@ namespace eastl
 	///        function instead of a standalone function like below.
 	///
 	template <typename Allocator>
-	inline void* allocate_memory(Allocator& a, size_t n, size_t alignment, size_t alignmentOffset)
+	inline void* allocate_memory(Allocator& a, size_t n, size_t alignment, size_t alignmentOffset, const char *trackname)
 	{
 		void *result;
 		if (alignment <= EASTL_ALLOCATOR_MIN_ALIGNMENT)
 		{
-			result = EASTLAlloc(a, n);
+			result = EASTLTrackedAlloc(a, n, trackname);
 			// Ensure the result is correctly aligned.  An assertion likely indicates a mismatch between EASTL_ALLOCATOR_MIN_ALIGNMENT and the minimum alignment
 			// of EASTLAlloc.  If there is a mismatch it may be necessary to define EASTL_ALLOCATOR_MIN_ALIGNMENT to be the minimum alignment of EASTLAlloc, or
 			// to increase the alignment of EASTLAlloc to match EASTL_ALLOCATOR_MIN_ALIGNMENT.
@@ -374,7 +374,7 @@ namespace eastl
 		}
 		else
 		{
-			result = EASTLAllocAligned(a, n, alignment, alignmentOffset);
+			result = EASTLTrackedAllocAligned(a, n, alignment, alignmentOffset, trackname);
 			// Ensure the result is correctly aligned.  An assertion here may indicate a bug in the allocator.
 			EASTL_ASSERT((reinterpret_cast<size_t>(result)& ~(alignment - 1)) == reinterpret_cast<size_t>(result));
 		}

@@ -512,6 +512,32 @@ namespace eastl
 		bool validate() const;
 		int  validate_iterator(const_iterator i) const;
 
+        // added functions to ensure COMM compatibility
+
+        template<typename Func>
+        inline void for_each(Func f)
+        {
+            eastl::for_each(begin(), end(), f);
+        }
+
+        template<typename Func>
+        inline T* find_if(Func f) const
+        {
+            return &*eastl::find_if(begin(), end(), f);
+        }
+
+        inline T* add()
+        {
+            emplace_back();
+            return &back();
+        }
+
+        inline T* push(const T& v)
+        {
+            push_back(v);
+            return &back();
+        }
+
 	protected:
 		template <typename Integer>
 		void DoInit(Integer n, Integer value, true_type);
@@ -650,7 +676,7 @@ namespace eastl
 	template <typename T, typename Allocator, unsigned kDequeSubarraySize>
 	T* DequeBase<T, Allocator, kDequeSubarraySize>::DoAllocateSubarray()
 	{
-		T* p = (T*)allocate_memory(mAllocator, kDequeSubarraySize * sizeof(T), EASTL_ALIGN_OF(T), 0);
+		T* p = (T*)allocate_memory(mAllocator, kDequeSubarraySize * sizeof(T), EASTL_ALIGN_OF(T), 0, typeid(T[]).name());
 		EASTL_ASSERT_MSG(p != nullptr, "the behaviour of eastl::allocators that return nullptr is not defined.");
 
 		#if EASTL_DEBUG
@@ -665,7 +691,7 @@ namespace eastl
 	void DequeBase<T, Allocator, kDequeSubarraySize>::DoFreeSubarray(T* p)
 	{
 		if(p)
-			EASTLFree(mAllocator, p, kDequeSubarraySize * sizeof(T)); 
+			EASTLTrackedFree(mAllocator, p, kDequeSubarraySize * sizeof(T), typeid(T[]).name());
 	}
 
 	template <typename T, typename Allocator, unsigned kDequeSubarraySize>
@@ -683,7 +709,7 @@ namespace eastl
 				EASTL_FAIL_MSG("deque::DoAllocatePtrArray -- improbably large request.");
 		#endif
 
-		T** pp = (T**)allocate_memory(mAllocator, n * sizeof(T*), EASTL_ALIGN_OF(T), 0);
+		T** pp = (T**)allocate_memory(mAllocator, n * sizeof(T*), EASTL_ALIGN_OF(T), 0, typeid(T*[]).name());
 		EASTL_ASSERT_MSG(pp != nullptr, "the behaviour of eastl::allocators that return nullptr is not defined.");
 
 		#if EASTL_DEBUG
@@ -698,7 +724,7 @@ namespace eastl
 	void DequeBase<T, Allocator, kDequeSubarraySize>::DoFreePtrArray(T** pp, size_t n)
 	{
 		if(pp)
-			EASTLFree(mAllocator, pp, n * sizeof(T*)); 
+			EASTLTrackedFree(mAllocator, pp, n * sizeof(T*), typeid(T*[]).name());
 	}
 
 
@@ -2958,7 +2984,6 @@ namespace eastl
 	{
 		a.swap(b);
 	}
-
 
 } // namespace eastl
 

@@ -420,9 +420,9 @@ namespace eastl
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-#ifndef EASTL_ASSERT_ENABLED
+/*#ifndef EASTL_ASSERT_ENABLED
 	#define EASTL_ASSERT_ENABLED EASTL_DEBUG
-#endif
+#endif*/
 
 // Developer assert. Helps EASTL developers assert EASTL is coded correctly. 
 // Normally disabled for users since it validates internal things and not user things.
@@ -1697,23 +1697,43 @@ typedef EASTL_SSIZE_T eastl_ssize_t; // Signed version of eastl_size_t. Concept 
 // }
 
 #ifndef EASTLAlloc // To consider: Instead of calling through pAllocator, just go directly to operator new, since that's what allocator does.
-	#define EASTLAlloc(allocator, n) (allocator).allocate(n);
+	#define EASTLAlloc(allocator, n) (allocator).allocate((n), 0, 0, 0);
+#endif
+
+#ifndef EASTLTrackedAlloc // To consider: Instead of calling through pAllocator, just go directly to operator new, since that's what allocator does.
+    #define EASTLTrackedAlloc(allocator, n, trackname) (allocator).allocate((n), 0, 0, 0, (trackname));
 #endif
 
 #ifndef EASTLAllocFlags // To consider: Instead of calling through pAllocator, just go directly to operator new, since that's what allocator does.
-	#define EASTLAllocFlags(allocator, n, flags) (allocator).allocate(n, flags);
+	#define EASTLAllocFlags(allocator, n, flags) (allocator).allocate((n), 0, 0, (flags));
+#endif
+
+#ifndef EASTLTrackedAllocFlags // To consider: Instead of calling through pAllocator, just go directly to operator new, since that's what allocator does.
+    #define EASTLTrackedAllocFlags(allocator, n, flags, trackname) (allocator).allocate((n), 0, 0, (flags), (trackname));
 #endif
 
 #ifndef EASTLAllocAligned
-	#define EASTLAllocAligned(allocator, n, alignment, offset) (allocator).allocate((n), (alignment), (offset))
+	#define EASTLAllocAligned(allocator, n, alignment, offset) (allocator).allocate((n), (alignment), (offset), 0)
+#endif
+
+#ifndef EASTLTrackedAllocAligned
+    #define EASTLTrackedAllocAligned(allocator, n, alignment, offset, trackname) (allocator).allocate((n), (alignment), (offset), 0, (trackname))
 #endif
 
 #ifndef EASTLAllocAlignedFlags
 	#define EASTLAllocAlignedFlags(allocator, n, alignment, offset, flags) (allocator).allocate((n), (alignment), (offset), (flags))
 #endif
 
+#ifndef EASTLTrackedAllocAlignedFlags
+    #define EASTLTrackedAllocAlignedFlags(allocator, n, alignment, offset, flags, trackname) (allocator).allocate((n), (alignment), (offset), (flags), (trackname))
+#endif
+
 #ifndef EASTLFree
 	#define EASTLFree(allocator, p, size) (allocator).deallocate((void*)(p), (size)) // Important to cast to void* as p may be non-const.
+#endif
+
+#ifndef EASTLTrackedFree
+    #define EASTLTrackedFree(allocator, p, size, trackname) (allocator).deallocate((void*)(p), (size), (trackname)) // Important to cast to void* as p may be non-const.
 #endif
 
 #ifndef EASTLAllocatorType
